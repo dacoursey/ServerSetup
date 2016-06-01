@@ -1,0 +1,136 @@
+FreeBSD Install
+
+Install Latest
+freebsd-update fetch
+freebsd-update install
+portsnap fetch
+portsnap extract (take a nap)
+
+adduser
+	fill in details
+	add to wheel (at your own risk)
+
+cd /usr/ports/security/openssh-portable
+make install clean 
+	openssh config - uncheck everything 
+	m4 config - uncheck everything
+	help2man config - uncheck everything
+	perl config - leave defaults (take another nap)
+	gmake - leave defaults
+	gettext - leave defaults
+	libiconv - leave defaults
+vi /etc/rc.conf
+	sshd_enable='NO'
+	openssh_enable='YES'
+
+init 6
+	log back in as user, root shouldn't work with new sshd
+
+su -
+cd /usr/ports/mail/postfix-current
+make install clean
+vi /etc/rc.conf
+	sendmail_enable="NO"
+	sendmail_submit_enable="NO"
+	sendmail_outbound_enable="NO"
+	sendmail_msp_queue_enable="NO"
+	postfix_enable="YES"
+	    # /usr/local/etc/rc.d/postfix.sh start
+	    # /usr/local/etc/rc.d/postfix.sh stop
+	    # cd /etc
+	    # ln -s /usr/local/etc/postfix
+        
+cd /usr/ports/sysutils/tmux
+make install clean
+	leave defaults
+
+init 6
+	yes, again
+	log back in as user, run tmux, su to root
+
+
+
+vi /etc/pf.conf
+	Enter config below
+vi /etc/rc.conf
+	pf_enable='YES'
+	pf_rules='/etc/pf.conf'
+	pflog_enable='YES'
+service pf start
+	(log back in if you get kicked out)
+service pflog start
+
+
+vi /etc/fstab
+	/dev/ada0p3 -> /dev/ada0p3.eli
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# /etc/pf.conf
+
+ext_if="em0"
+
+webports = "{http, https}"
+int_tcp_services = "{domain, ntp, smtp, www, https}"
+int_udp_services = "{domain, ntp}"
+
+set skip on lo
+set loginterface $ext_if
+
+# Normalization
+scrub in all random-id fragment reassemble
+
+block return in log all
+block out all
+
+antispoof quick for $ext_if
+
+# Block 'rapid-fire brute force attempts
+table <bruteforce> persist
+block quick from <bruteforce>
+
+# SSH is listening on port 22
+pass in quick proto tcp to $ext_if port 22 keep state (max-src-conn 15, max-src-conn-rate 5/3, overload <bruteforce> flush global)
+
+# Webserver
+pass proto tcp from any to $ext_if port $webports
+
+# Allow essential outgoing traffic
+pass out quick on $ext_if proto tcp to any port $int_tcp_services
+pass out quick on $ext_if proto udp to any port $int_udp_services
+
+
+
